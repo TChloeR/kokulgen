@@ -6,6 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin", "latin-ext"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://kokulgen.com"),
   title: {
     default: "Kök Ülgen — Türkiye'de sosyal yardıma erişemeyen kalmasın",
     template: "%s | Kök Ülgen",
