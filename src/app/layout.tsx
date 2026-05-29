@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Inter } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"] });
@@ -14,6 +15,22 @@ export const metadata: Metadata = {
   description:
     "Türkiye'deki sosyal yardım ağını tek bir merkezde topluyoruz. Vakıf, dernek, STK ve devlet desteklerine kolayca ulaşın.",
   keywords: ["sosyal yardım", "burs", "şehit gazi aileleri", "engelli yardımı", "sydv"],
+  openGraph: {
+    title: "Kök Ülgen — Türkiye'de sosyal yardıma erişemeyen kalmasın",
+    description:
+      "Türkiye'deki sosyal yardım ağını tek bir merkezde topluyoruz. Vakıf, dernek, STK ve devlet desteklerine kolayca ulaşın.",
+    url: "https://kokulgen.com",
+    siteName: "Kök Ülgen",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    locale: "tr_TR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kök Ülgen",
+    description: "Türkiye'de sosyal yardıma erişemeyen kalmasın",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -45,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </p>
           </div>
         </footer>
+        <GoogleAnalytics gaId="G-HST9ZGX3JS" />
       </body>
     </html>
   );
