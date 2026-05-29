@@ -1,32 +1,24 @@
-"use client";
+export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { getMaintenanceMode } from "@/lib/settings";
+import MaintenanceToggle from "@/components/admin/MaintenanceToggle";
+import LogoutButton from "@/components/admin/LogoutButton";
 
-export default function AdminDashboard() {
-  const router = useRouter();
-
-  const logout = async () => {
-    await fetch("/api/admin/logout", { method: "POST" });
-    router.push("/admin/login");
-    router.refresh();
-  };
+export default async function AdminDashboard() {
+  const maintenance = await getMaintenanceMode();
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">Yönetim Paneli</h1>
-        <button
-          onClick={logout}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Çıkış Yap
-        </button>
+        <LogoutButton />
       </div>
       <p className="mt-2 text-slate-600">
         Hoş geldin. Bir sonraki adımda buraya kurum yönetimi eklenecek.
       </p>
       <div className="mt-8 space-y-3">
+        <MaintenanceToggle initial={maintenance} />
         <Link href="/admin/kurumlar"
           className="block rounded-2xl border border-slate-200 bg-white p-6 hover:border-emerald-300">
           <div className="text-lg font-semibold text-slate-900">Kurumlar</div>

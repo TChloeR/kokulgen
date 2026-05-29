@@ -230,3 +230,14 @@ model PetitionTemplate {
 
   @@index([programId])
 }
+
+// ============================================
+// SITE AYARLARI (Bakım modu vb.)
+// ============================================
+
+model SiteSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
