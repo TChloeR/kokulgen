@@ -1,0 +1,232 @@
+// ============================================
+// kokulgen.com — Veritabanı Şeması
+// "Türkiye'de sosyal yardıma erişemeyen kalmasın"
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// ENUM TANIMLARI
+// ============================================
+
+// Kurum tipleri — filtreleme ve rozet gösterimi için
+enum OrganizationType {
+  VAKIF           // Vakıf
+  DERNEK          // Dernek
+  STK             // Sivil Toplum Kuruluşu
+  DEVLET_KURUMU   // Devlet Kurumu (SYDV, Bakanlıklar vb.)
+  SIRKET          // Şirket / Özel Sektör CSR
+  BELEDIYE        // Belediye
+}
+
+// Başvuru yöntemi — detay sayfasında nasıl bir UI göstereceğimizi belirler
+enum ApplicationMethod {
+  ONLINE          // Sadece online link
+  YUZ_YUZE        // Sadece yüz yüze (adres + harita)
+  HER_IKISI       // Hem online hem yüz yüze
+  TELEFON         // Telefonla başvuru
+}
+
+// Şablon dosya formatı
+enum TemplateFormat {
+  WORD            // .docx
+  PDF             // .pdf
+  HER_IKISI       // İkisi de mevcut
+}
+
+// İçerik yayın durumu — editoryal kontrol için
+enum PublishStatus {
+  TASLAK          // Draft — yayında değil
+  YAYINDA         // Published
+  ARSIV           // Archived
+}
+
+// ============================================
+// KATEGORİLER (Hedef Kitle Grupları)
+// ============================================
+
+model Category {
+  id          String   @id @default(cuid())
+  slug        String   @unique              // SEO: /kategori/ebeveyn-kaybi-yasayan-cocuklar
+  name        String                        // "Ebeveyn Kaybı Yaşayan Çocuklarımız"
+  description String?  @db.Text             // Kategori açıklaması (SEO meta + sayfa girişi)
+  iconName    String?                       // Frontend ikon eşlemesi (örn. "child-care")
+  orderIndex  Int      @default(0)          // Anasayfada sıralama
+
+  // SEO alanları
+  metaTitle       String?
+  metaDescription String?
+
+  // İlişkiler
+  programs    ProgramCategory[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([orderIndex])
+}
+
+// ============================================
+// KURUMLAR (Vakıf, Dernek, STK, Devlet, Şirket)
+// ============================================
+
+model Organization {
+  id            String           @id @default(cuid())
+  slug          String           @unique          // SEO: /kurum/turk-kizilay
+  name          String                            // "Türk Kızılay"
+  type          OrganizationType
+  description   String?          @db.Text         // Kurum hakkında genel bilgi
+  logoUrl       String?
+
+  // İletişim & konum
+  websiteUrl    String?
+  email         String?
+  phone         String?
+  address       String?          @db.Text         // Açık adres (yüz yüze başvuru için)
+  city          String?                           // İl — filtreleme için kritik
+  district      String?                           // İlçe
+  latitude      Float?                            // Harita pini için
+  longitude     Float?                            // Harita pini için
+
+  // Doğrulama & güven
+  isVerified    Boolean          @default(false)  // Editör tarafından doğrulandı mı?
+  status        PublishStatus    @default(TASLAK)
+
+  // SEO alanları
+  metaTitle       String?
+  metaDescription String?
+
+  // İlişkiler
+  programs      AidProgram[]
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([slug])
+  @@index([type])
+  @@index([city])
+  @@index([status])
+}
+
+// ============================================
+// YARDIM PROGRAMLARI
+// (Bir kurumun sunduğu spesifik yardım)
+// ============================================
+
+model AidProgram {
+  id              String            @id @default(cuid())
+  slug            String            @unique        // SEO: /yardim/kizilay-egitim-bursu
+  title           String                           // "Eğitim Bursu Programı"
+  summary         String?           @db.Text       // Kısa özet (kart görünümü + SEO)
+  details         String            @db.Text       // Programın TAM detayı
+  conditions      String            @db.Text       // Başvuru şartları (kimler başvurabilir)
+
+  // Başvuru yöntemi
+  applicationMethod   ApplicationMethod
+  onlineApplicationUrl String?                     // Online ise resmi başvuru linki
+  // Yüz yüze adres bilgisi kurumdan miras alınır, ama program özel adresi varsa:
+  applicationAddress  String?       @db.Text       // Programa özel başvuru adresi (opsiyonel)
+  applicationLatitude  Float?
+  applicationLongitude Float?
+
+  // Başvuru takvimi
+  applicationStartDate DateTime?                    // Başvuru başlangıç
+  applicationDeadline  DateTime?                    // Son başvuru tarihi
+  isAlwaysOpen         Boolean      @default(false) // Sürekli açık mı?
+
+  status          PublishStatus     @default(TASLAK)
+
+  // SEO alanları
+  metaTitle       String?
+  metaDescription String?
+
+  // İlişkiler
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId  String
+
+  categories      ProgramCategory[]                 // Many-to-many
+  requiredDocuments RequiredDocument[]              // Checklist (vatandaşın temin edeceği)
+  petitionTemplates PetitionTemplate[]              // İndirilecek matbu dilekçeler
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([applicationDeadline])
+}
+
+// ============================================
+// ARA TABLO: Program ↔ Kategori (Many-to-Many)
+// ============================================
+
+model ProgramCategory {
+  program     AidProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId   String
+  category    Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId  String
+
+  assignedAt  DateTime   @default(now())
+
+  @@id([programId, categoryId])
+  @@index([categoryId])
+  @@index([programId])
+}
+
+// ============================================
+// İSTENEN BELGELER (Checklist Öğeleri)
+// Vatandaşın kendisinin temin edeceği belgeler
+// ============================================
+
+model RequiredDocument {
+  id          String     @id @default(cuid())
+  name        String                          // "Nüfus Kayıt Örneği"
+  description String?    @db.Text             // "E-Devlet'ten alınabilir" gibi açıklama
+  sourceLinks Json?                            // E-Devlet vb. linklerin listesi: [{label, url}]
+  isMandatory Boolean    @default(true)       // Zorunlu mu, opsiyonel mi?
+  orderIndex  Int        @default(0)          // Checklist sıralaması
+
+  // İlişki
+  program     AidProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId   String
+
+  createdAt   DateTime   @default(now())
+
+  @@index([programId])
+}
+
+// ============================================
+// DİLEKÇE ŞABLONLARI (Matbu / İndirilebilir)
+// Projenin EN ÖNEMLİ özelliği
+// ============================================
+
+model PetitionTemplate {
+  id            String         @id @default(cuid())
+  title         String                          // "Burs Başvuru Dilekçesi"
+  description   String?        @db.Text         // Şablonun ne işe yaradığı
+  format        TemplateFormat                  // WORD / PDF / HER_IKISI
+
+  // Dosya bağlantıları (depolama servisinde tutulacak URL'ler)
+  wordFileUrl   String?                         // .docx indirme linki
+  pdfFileUrl    String?                         // .pdf indirme linki
+
+  version       String         @default("1.0")  // Şablon versiyonu
+  downloadCount Int            @default(0)       // İndirilme sayacı (analitik)
+
+  // İlişki
+  program       AidProgram     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId     String
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([programId])
+}
